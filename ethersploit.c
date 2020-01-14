@@ -25,6 +25,10 @@
 #define TCP 0
 #define UDP 1
 
+#define MICROLOGIX_1100			1100
+#define MICROLOGIX_1200			1200
+#define MICROLOGIX_1400			1400
+
 struct cli_def *cli;
 
 void cli_start();
@@ -38,6 +42,7 @@ bool response_received = false;
 char response_buffer[1000000];
 int response_size;
 char device_ip[100];
+uint16_t device_type = MICROLOGIX_1400;
 pthread_t keepalive_thread;
 
 pthread_mutex_t sending_request; //mutex for the multiple sending threads
@@ -57,6 +62,8 @@ struct enip_header
     bool send_cip;
     char *data;
 };
+
+int get_device_info(struct cli_def *cli, const char *command, char *argv[], int argc);
 
 
 //-----------------------------------------------------------------------------
@@ -280,6 +287,8 @@ int establish_enip_connection(struct cli_def *cli, const char *command, char *ar
     }
     
     strncpy(device_ip, argv[0], 100);
+	
+	get_device_info(cli, command, argv, argc);
     
     return CLI_OK;
 }
@@ -477,8 +486,15 @@ int write_password(struct cli_def *cli, const char *command, char *argv[], int a
         }
     }
     
-    char pccc_command[1000]; 
-    memcpy(pccc_command, (const char[]){(char)0x0f,(char)0x00,(char)0x01,(char)0x08,(char)0xaa,(char)0x0a,(char)0x00,(char)0x03,(char)0x0b,(char)0x00},10);
+    char pccc_command[1000];
+	if (device_type == MICROLOGIX_1100)
+	{
+		memcpy(pccc_command, (const char[]){(char)0x0f,(char)0x00,(char)0x01,(char)0x08,(char)0xaa,(char)0x0a,(char)0x00,(char)0x02,(char)0x0b,(char)0x00},10);
+	}
+	else
+	{
+		memcpy(pccc_command, (const char[]){(char)0x0f,(char)0x00,(char)0x01,(char)0x08,(char)0xaa,(char)0x0a,(char)0x00,(char)0x03,(char)0x0b,(char)0x00},10);
+	}
     memcpy(&pccc_command[10], (const char[]){(char)0,(char)0,(char)0,(char)0,(char)0,(char)0,(char)0,(char)0,(char)0,(char)0},10); //wipe previous password
     memcpy(&pccc_command[10], argv[0], strlen(argv[0])); //write new password
     pthread_mutex_lock(&sending_request); //lock mutex
@@ -602,7 +618,23 @@ int get_device_info(struct cli_def *cli, const char *command, char *argv[], int 
         char product_name[1000];
         memcpy(product_name, &device_response[59], device_response[58]);
         product_name[device_response[58]] = '\0';
-        p += sprintf(p, "Product Name: %s", product_name);
+		p += sprintf(p, "Product Name: %s", product_name);
+		
+		if (!strncmp(product_name, "1763", 4))
+		{
+			device_type = MICROLOGIX_1100;
+			p += sprintf(p, " (MicroLogix 1100 Series)");
+		}
+		else if (!strncmp(product_name, "1762", 4))
+		{
+			device_type = MICROLOGIX_1200;
+			p += sprintf(p, " (MicroLogix 1200 Series)");
+		}
+		else if (!strncmp(product_name, "1766", 4))
+		{
+			device_type = MICROLOGIX_1400;
+			p += sprintf(p, " (MicroLogix 1400 Series)");
+		}
 
         cli_print(cli, messagebuffer);
         
