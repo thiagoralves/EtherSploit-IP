@@ -693,7 +693,11 @@ int reboot_plc(struct cli_def *cli, const char *command, char *argv[], int argc)
     {
         cli_print(cli, "Warning: keep alive thread didn't stop");
     }
-    pthread_mutex_unlock(&sending_request); //make sure mutex is unlocked
+	
+	//make sure mutex is unlocked
+	pthread_mutex_trylock(&sending_request);
+    pthread_mutex_unlock(&sending_request);
+	
     enip_connected = false;
     
     //send SNMP packet
@@ -839,7 +843,11 @@ int kill_plc(struct cli_def *cli, const char *command, char *argv[], int argc)
     {
         cli_print(cli, "Warning: keep alive thread didn't stop");
     }
-    pthread_mutex_unlock(&sending_request); //make sure mutex is unlocked
+	
+	//make sure mutex is unlocked
+	pthread_mutex_trylock(&sending_request);
+    pthread_mutex_unlock(&sending_request);
+	
     enip_connected = false;
     
     //send death packet
@@ -975,7 +983,11 @@ int change_ip(struct cli_def *cli, const char *command, char *argv[], int argc)
     {
         cli_print(cli, "Warning: keep alive thread didn't stop");
     }
-    pthread_mutex_unlock(&sending_request); //make sure mutex is unlocked
+	
+	//make sure mutex is unlocked
+	pthread_mutex_trylock(&sending_request);
+    pthread_mutex_unlock(&sending_request);
+	
     enip_connected = false;
     
     cli_print(cli, "Device IP changed to: %s", argv[0]);

@@ -26,6 +26,8 @@ extern struct cli_def *cli;
 
 static struct termios tin;
 
+void sleep_us(int microseconds);
+
 void negotiate(int sock, unsigned char *buf, int len) 
 {
     int i;
@@ -119,6 +121,9 @@ void cli_start()
     pthread_t server_thread;
     pthread_create(&server_thread, NULL, start_server, NULL);
     
+	//sleep for a bit
+	sleep_us(100000);
+	
     //Little TELNET code to connect to itself
     int sock;
     struct sockaddr_in server;
